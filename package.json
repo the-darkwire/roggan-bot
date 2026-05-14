@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/tyler-coleman/roggan-bot#readme",
   "dependencies": {
-    "@discordjs/voice": "^0.16.1",
+    "@discordjs/voice": "^0.19.2",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
     "ffmpeg-static": "^5.2.0",

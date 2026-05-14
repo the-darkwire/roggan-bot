@@ -137,11 +137,16 @@ export const execute = async (interaction: ChatInputCommandInteraction) => {
     console.log(`Attempted to taunt with invalid argument ${tauntID}`);
     return;
   }
+  await interaction.deferReply();
   try {
     await joinVoiceChannelAndPlayTaunt(voiceChannel, tauntID);
-    interaction.reply(TauntIDToMessageMap[tauntID]);
+    await interaction.editReply(TauntIDToMessageMap[tauntID]);
   } catch (e) {
-    interaction.reply("Something isn't working...");
     console.error(e);
+    try {
+      await interaction.editReply("Something isn't working...");
+    } catch (replyErr) {
+      console.error("Failed to send error reply:", replyErr);
+    }
   }
 };
