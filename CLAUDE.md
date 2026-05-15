@@ -30,13 +30,13 @@ Entry point is `index.ts`: it constructs a `discord.js` `Client` with the `Guild
 
 Taunt IDs 43–105 are reserved for the Definitive Edition but no audio files exist for them yet; the command rejects those explicitly with a different message than out-of-range IDs. The ID→reply-text map and bounds live in `src/constants/taunts.ts`; `src/utils/getAudioFilePath.ts` maps an ID to `assets/NN.mp3` (zero-padded).
 
-## Style conventions (from `.eslintrc.json`)
+## Style conventions (from `eslint.config.js`)
 
-Single quotes, semicolons required, trailing commas on multi-line, 1tbs brace style, spaces inside object braces.
+Single quotes, semicolons required, trailing commas on multi-line, 1tbs brace style, spaces inside object braces. Run with `npm run lint`.
 
 ## Gotchas
 
-- **Voice gateway version**: Discord deprecated voice gateway v4. `@discordjs/voice` must be `^0.19.x` or newer (which speaks v8 / DAVE). If `/taunt` joins the channel but stays muted and times out with an `AbortError` from `entersState`, the voice library is probably too old.
+- **Voice gateway version**: Discord deprecated voice gateway v4. `@discordjs/voice` must be `^0.19.x` or newer (which speaks v8 / DAVE). If `/taunt` joins the channel but stays muted and times out with an `AbortError` from `entersState`, the voice library is probably too old. Note that `@discordjs/voice` >= 0.19 requires Node ≥ 22.12 — older Node will install the package but the voice stack misbehaves.
 - **`discord.js` and `@discordjs/voice` versions must stay aligned.** A `discord.js` bump pulls a newer `discord-api-types`, and if `@discordjs/voice` is still on an old one, `voiceAdapterCreator` fails TS2322 with `InternalDiscordGatewayAdapterCreator` not assignable to `DiscordGatewayAdapterCreator`. Bump both together.
-- **Regenerating `package-lock.json` must use the container's npm version.** The Dockerfile's `node:18.19.1-alpine` ships npm 10.2.4; newer local npm writes optional WASM-runtime deps the container's `npm ci` rejects with "Missing: @emnapi/core … from lock file". To regenerate cleanly: `docker run --rm -v "$PWD":/work -w /work node:18.19.1-alpine npm install --package-lock-only`.
+- **Regenerating `package-lock.json` must use the container's npm version.** Local npm versions newer than the container's can write optional WASM-runtime deps the container's `npm ci` rejects with "Missing: @emnapi/core … from lock file". To regenerate cleanly, run npm install inside the same Node image the Dockerfile uses: `docker run --rm -v "$PWD":/work -w /work node:24.15.0-alpine npm install --package-lock-only` (update the image tag to match `ARG NODE_VERSION` in the Dockerfile).
 - **`network_mode: host` is not needed.** Voice works on the default Docker bridge once the gateway version is current. Don't add it back without evidence it's required.
