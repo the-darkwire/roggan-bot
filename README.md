@@ -6,7 +6,7 @@ Triggered by a single slash command `/taunt <tauntid> [ephemeral]`. The bot join
 
 ## Server Owners
 
-Want the bot in your Discord server?
+Want the bot in your Discord server? **[→ Invite roggan-bot](https://discord.com/api/oauth2/authorize?client_id=805504237953482756&scope=bot+applications.commands&permissions=2150631424)**
 
 **What it does once installed:**
 
@@ -27,10 +27,8 @@ Invite scopes: `bot` + `applications.commands`. The bot is configured with `Guil
 
 **Setup checklist:**
 
-1. Ask the bot operator to send you the bot's invite URL (or [create your own Discord application + bot](https://discord.com/developers/applications) if you're self-hosting).
-2. Invite the bot to your server with the permissions above.
-3. Make sure the bot operator has run `pnpm deploy-commands` so `/taunt` is registered globally. If you don't see the command in your server, ping the operator.
-4. From any voice channel, run `/taunt <tauntid>` and enjoy.
+1. Click the invite link above and pick a server you administer.
+2. Join a voice channel and run `/taunt <tauntid>` (any number 1–42).
 
 (No per-server configuration is needed. The bot resolves the invoking user's voice channel dynamically.)
 
