@@ -18,14 +18,16 @@ WORKDIR /usr/src/app
 
 # RUN apk --update add build-base make libtool autoconf automake
 
+# Enable pnpm via corepack (bundled with Node 24+).
+RUN corepack enable
+
 # Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
-# into this layer.
+# Bind-mount package.json and pnpm-lock.yaml so the layer is invalidated only when they change.
 RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --prod --frozen-lockfile
 
 # Run the application as a non-root user.
 USER node
@@ -34,4 +36,4 @@ USER node
 COPY . .
 
 # Run the application.
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]
