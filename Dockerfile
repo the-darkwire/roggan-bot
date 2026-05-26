@@ -25,6 +25,7 @@ RUN corepack enable
 # Bind-mount package.json and pnpm-lock.yaml so the layer is invalidated only when they change.
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=bind,source=pnpm-workspace.yaml,target=pnpm-workspace.yaml \
     --mount=type=cache,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
     pnpm install --prod --frozen-lockfile
