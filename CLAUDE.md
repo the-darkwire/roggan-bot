@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Org-wide conventions (toolchain, script vocabulary, style, deploy patterns, Node version policy) live in [`org-conventions.md`](./org-conventions.md) — vendored from <https://github.com/the-darkwire/conventions>. This file covers what's specific to roggan-bot.
+
 ## What this is
 
 A Discord bot that joins the invoking user's voice channel and plays an Age of Empires II taunt sound. The bot exposes a single slash command, `/taunt <tauntid> [ephemeral]`, where `tauntid` is a number from 1–42 corresponding to an mp3 in `assets/`.
