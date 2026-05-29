@@ -9,6 +9,7 @@ import {
   VoiceConnectionStatus,
 } from "@discordjs/voice";
 import {
+  type AutocompleteInteraction,
   type ChatInputCommandInteraction,
   SlashCommandBuilder,
   type VoiceBasedChannel,
@@ -30,7 +31,8 @@ export const data = new SlashCommandBuilder()
       .setDescription("The AoE2 taunt ID to play")
       .setRequired(true)
       .setMinValue(MINIMUM_TAUNT_ID)
-      .setMaxValue(MAXIMUM_TAUNT_ID),
+      .setMaxValue(MAXIMUM_TAUNT_ID)
+      .setAutocomplete(true),
   )
   .addBooleanOption((option) =>
     option
@@ -88,6 +90,30 @@ const joinVoiceChannelAndPlayTaunt = async (voiceChannel: VoiceBasedChannel, tau
     console.error(e);
     throw e;
   }
+};
+
+const AUTOCOMPLETE_MAX_CHOICES = 25;
+
+const tauntChoices = Object.entries(TauntIDToMessageMap)
+  .map(([id, message]) => ({ id: Number(id), message }))
+  .sort((a, b) => a.id - b.id);
+
+export const autocomplete = async (interaction: AutocompleteInteraction) => {
+  const query = interaction.options.getFocused().toString().trim().toLowerCase();
+
+  const matches = query
+    ? tauntChoices.filter(
+        ({ id, message }) =>
+          id.toString().startsWith(query) || message.toLowerCase().includes(query),
+      )
+    : tauntChoices;
+
+  await interaction.respond(
+    matches.slice(0, AUTOCOMPLETE_MAX_CHOICES).map(({ id, message }) => ({
+      name: `${id} — ${message}`,
+      value: id,
+    })),
+  );
 };
 
 export const execute = async (interaction: ChatInputCommandInteraction) => {
