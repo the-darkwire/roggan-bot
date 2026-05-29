@@ -1,2 +1,6 @@
 node_modules
 .env
+roggan.db
+roggan.db-journal
+roggan.db-shm
+roggan.db-wal

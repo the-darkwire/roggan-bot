@@ -1,6 +1,9 @@
 import { Client, Events } from "discord.js";
 import { token } from "./src/config";
+import { getDb } from "./src/db";
 import { routeInteraction } from "./src/interaction-router";
+
+getDb();
 
 const client = new Client({
   intents: ["Guilds", "GuildMessages", "GuildVoiceStates", "MessageContent"],

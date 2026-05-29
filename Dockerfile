@@ -30,6 +30,10 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     pnpm config set store-dir /pnpm-store && \
     pnpm install --prod --frozen-lockfile
 
+# Create the data directory owned by the non-root user so the SQLite volume mount inherits
+# correct permissions on first run.
+RUN mkdir -p /data && chown node:node /data
+
 # Run the application as a non-root user.
 USER node
 
