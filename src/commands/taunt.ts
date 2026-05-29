@@ -103,15 +103,17 @@ const tauntChoices = Object.entries(TauntIDToMessageMap)
   .map(([id, message]) => ({ id: Number(id), message }))
   .sort((a, b) => a.id - b.id);
 
-export const autocomplete = async (interaction: AutocompleteInteraction) => {
-  const query = interaction.options.getFocused().toString().trim().toLowerCase();
+export const filterTauntChoices = (query: string) => {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return tauntChoices;
+  return tauntChoices.filter(
+    ({ id, message }) =>
+      id.toString().startsWith(normalized) || message.toLowerCase().includes(normalized),
+  );
+};
 
-  const matches = query
-    ? tauntChoices.filter(
-        ({ id, message }) =>
-          id.toString().startsWith(query) || message.toLowerCase().includes(query),
-      )
-    : tauntChoices;
+export const autocomplete = async (interaction: AutocompleteInteraction) => {
+  const matches = filterTauntChoices(interaction.options.getFocused().toString());
 
   await interaction.respond(
     matches.slice(0, AUTOCOMPLETE_MAX_CHOICES).map(({ id, message }) => ({
