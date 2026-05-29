@@ -8,7 +8,7 @@
 
 ARG NODE_VERSION=24.15.0
 
-FROM node:${NODE_VERSION}-alpine
+FROM node:${NODE_VERSION}-bookworm-slim
 
 # Use production node environment by default.
 ENV NODE_ENV=production
