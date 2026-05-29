@@ -1,4 +1,5 @@
 import {
+  type AudioPlayer,
   AudioPlayerStatus,
   createAudioPlayer,
   createAudioResource,
@@ -6,6 +7,7 @@ import {
   joinVoiceChannel,
   NoSubscriberBehavior,
   StreamType,
+  type VoiceConnection,
   VoiceConnectionStatus,
 } from "@discordjs/voice";
 import {
@@ -42,15 +44,12 @@ export const data = new SlashCommandBuilder()
       ),
   );
 
-const audioPlayer = createAudioPlayer({
-  behaviors: { noSubscriber: NoSubscriberBehavior.Stop },
-});
+type GuildSession = { player: AudioPlayer; connection: VoiceConnection };
+const guildSessions = new Map<string, GuildSession>();
 
-const attachAudioResource = (audioFilePath: string) => {
-  const resource = createAudioResource(audioFilePath, {
-    inputType: StreamType.Raw,
-  });
-  audioPlayer.play(resource);
+const tearDownSession = (session: GuildSession) => {
+  session.player.stop();
+  session.connection.destroy();
 };
 
 const connectToVoiceChannel = async (channel: VoiceBasedChannel) => {
@@ -70,26 +69,33 @@ const connectToVoiceChannel = async (channel: VoiceBasedChannel) => {
 };
 
 const joinVoiceChannelAndPlayTaunt = async (voiceChannel: VoiceBasedChannel, tauntID: number) => {
-  try {
-    const filePath = getAudioFilePath(tauntID);
-    if (!filePath) throw new Error("No file path for given tauntID");
+  const filePath = getAudioFilePath(tauntID);
+  if (!filePath) throw new Error("No file path for given tauntID");
 
-    const connection = await connectToVoiceChannel(voiceChannel);
-
-    attachAudioResource(filePath);
-    const subscription = connection.subscribe(audioPlayer);
-
-    audioPlayer.on(AudioPlayerStatus.Idle, (asdf) => {
-      console.log("idle, stopping, ", asdf);
-      audioPlayer.stop();
-      console.log("unsubscribing");
-      subscription?.unsubscribe();
-      connection.disconnect();
-    });
-  } catch (e) {
-    console.error(e);
-    throw e;
+  const guildId = voiceChannel.guildId;
+  const previous = guildSessions.get(guildId);
+  if (previous) {
+    tearDownSession(previous);
+    guildSessions.delete(guildId);
   }
+
+  const connection = await connectToVoiceChannel(voiceChannel);
+  const player = createAudioPlayer({
+    behaviors: { noSubscriber: NoSubscriberBehavior.Stop },
+  });
+  const resource = createAudioResource(filePath, { inputType: StreamType.Raw });
+  player.play(resource);
+  connection.subscribe(player);
+
+  const session: GuildSession = { player, connection };
+  guildSessions.set(guildId, session);
+
+  player.once(AudioPlayerStatus.Idle, () => {
+    if (guildSessions.get(guildId) === session) {
+      tearDownSession(session);
+      guildSessions.delete(guildId);
+    }
+  });
 };
 
 const AUTOCOMPLETE_MAX_CHOICES = 25;
