@@ -43,6 +43,14 @@ describe("filterTauntChoices", () => {
     expect(ids).not.toContain(40);
   });
 
+  it("returns typed-query matches in id order (regression: typing '3' must return 3 before 30, even though 30 is globally pinned)", () => {
+    // Discord auto-fills the first autocomplete entry when the user hits enter on a partial
+    // input. If 30 (Wololo, globally pinned) showed up before 3 (Food please), the user would
+    // get the wrong taunt.
+    const matches = filterTauntChoices("3");
+    expect(matches[0].id).toBe(3);
+  });
+
   it("returns an empty array when nothing matches", () => {
     expect(filterTauntChoices("zzzzz-no-such-taunt")).toEqual([]);
   });
@@ -64,10 +72,11 @@ describe("filterTauntChoices", () => {
       expect(all).toHaveLength(MAXIMUM_TAUNT_ID - MINIMUM_TAUNT_ID + 1);
     });
 
-    it("ranks user pins above other matches when a query is provided", () => {
-      // Both 30 (Wololo) and 3 (Food please) include something; the user pin should come first
-      const matches = filterTauntChoices("o", [3]);
-      expect(matches[0].id).toBe(3);
+    it("ignores user pins when a query is typed — typed matches stay in id order", () => {
+      // User pinned 42; typing '2' should still return 2 first (closest id match),
+      // not 42 (which would otherwise jump to the front because it's pinned).
+      const matches = filterTauntChoices("2", [42]);
+      expect(matches[0].id).toBe(2);
     });
 
     it("excludes user pins that don't match the typed query", () => {

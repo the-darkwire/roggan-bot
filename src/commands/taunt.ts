@@ -127,20 +127,23 @@ export const filterTauntChoices = (
   userPinnedIds: readonly number[] = [],
 ): TauntChoice[] => {
   const normalized = query.trim().toLowerCase();
-  const userPinSet = new Set<number>(userPinnedIds);
 
+  // While typing, ignore pinning entirely and return matches in stable id order. Otherwise
+  // Discord autofills the top pinned match on enter — e.g. typing "3" picks 30 (Wololo) instead
+  // of 3 (Food please). Pinning is only for empty-query discoverability.
+  if (normalized) {
+    return tauntChoicesById.filter(
+      ({ id, message }) =>
+        id.toString().startsWith(normalized) || message.toLowerCase().includes(normalized),
+    );
+  }
+
+  const userPinSet = new Set<number>(userPinnedIds);
   const userPinChoices = userPinnedIds
     .map((id) => choiceById.get(id))
     .filter((c): c is TauntChoice => c !== undefined);
-
   const remaining = tauntChoicesPinnedFirst.filter((c) => !userPinSet.has(c.id));
-  const ordered = [...userPinChoices, ...remaining];
-
-  if (!normalized) return ordered;
-  return ordered.filter(
-    ({ id, message }) =>
-      id.toString().startsWith(normalized) || message.toLowerCase().includes(normalized),
-  );
+  return [...userPinChoices, ...remaining];
 };
 
 export const autocomplete = async (interaction: AutocompleteInteraction) => {
