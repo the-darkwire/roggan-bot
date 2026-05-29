@@ -23,6 +23,7 @@ import {
   MINIMUM_TAUNT_ID,
   TauntIDToMessageMap,
 } from "../constants/taunts";
+import { listUserPinnedTauntIds } from "../db";
 import { getAudioFilePath } from "../utils/getAudioFilePath";
 
 export const data = new SlashCommandBuilder()
@@ -103,31 +104,51 @@ const AUTOCOMPLETE_MAX_CHOICES = 25;
 // these iconic taunts first to make sure they fit in the visible window.
 const PINNED_TAUNT_IDS = [30, 29, 11, 24, 26, 27, 42] as const;
 
-const tauntChoicesById = Object.entries(TauntIDToMessageMap)
+type TauntChoice = { id: number; message: string };
+
+const tauntChoicesById: TauntChoice[] = Object.entries(TauntIDToMessageMap)
   .map(([id, message]) => ({ id: Number(id), message }))
   .sort((a, b) => a.id - b.id);
 
+const choiceById = new Map<number, TauntChoice>(tauntChoicesById.map((c) => [c.id, c]));
+
 const pinnedTauntIdSet = new Set<number>(PINNED_TAUNT_IDS);
-const tauntChoicesPinnedFirst = [
+const tauntChoicesPinnedFirst: TauntChoice[] = [
   ...PINNED_TAUNT_IDS.map((id) => {
-    const choice = tauntChoicesById.find((c) => c.id === id);
+    const choice = choiceById.get(id);
     if (!choice) throw new Error(`Pinned taunt id ${id} not present in TauntIDToMessageMap`);
     return choice;
   }),
   ...tauntChoicesById.filter((c) => !pinnedTauntIdSet.has(c.id)),
 ];
 
-export const filterTauntChoices = (query: string) => {
+export const filterTauntChoices = (
+  query: string,
+  userPinnedIds: readonly number[] = [],
+): TauntChoice[] => {
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return tauntChoicesPinnedFirst;
-  return tauntChoicesById.filter(
+  const userPinSet = new Set<number>(userPinnedIds);
+
+  const userPinChoices = userPinnedIds
+    .map((id) => choiceById.get(id))
+    .filter((c): c is TauntChoice => c !== undefined);
+
+  const remaining = tauntChoicesPinnedFirst.filter((c) => !userPinSet.has(c.id));
+  const ordered = [...userPinChoices, ...remaining];
+
+  if (!normalized) return ordered;
+  return ordered.filter(
     ({ id, message }) =>
       id.toString().startsWith(normalized) || message.toLowerCase().includes(normalized),
   );
 };
 
 export const autocomplete = async (interaction: AutocompleteInteraction) => {
-  const matches = filterTauntChoices(interaction.options.getFocused().toString());
+  const userPinnedIds = listUserPinnedTauntIds(interaction.user.id);
+  const matches = filterTauntChoices(
+    interaction.options.getFocused().toString(),
+    userPinnedIds,
+  );
 
   await interaction.respond(
     matches.slice(0, AUTOCOMPLETE_MAX_CHOICES).map(({ id, message }) => ({
