@@ -13,6 +13,7 @@ import {
 import {
   type AutocompleteInteraction,
   type ChatInputCommandInteraction,
+  MessageFlags,
   SlashCommandBuilder,
   type VoiceBasedChannel,
 } from "discord.js";
@@ -39,9 +40,7 @@ export const data = new SlashCommandBuilder()
   .addBooleanOption((option) =>
     option
       .setName("ephemeral")
-      .setDescription(
-        "Whether the taunt should be printed to the command's channel for everyone to see",
-      ),
+      .setDescription("Only show the text reply to you (audio still plays for everyone)"),
   );
 
 type GuildSession = { player: AudioPlayer; connection: VoiceConnection };
@@ -124,39 +123,43 @@ export const autocomplete = async (interaction: AutocompleteInteraction) => {
 
 export const execute = async (interaction: ChatInputCommandInteraction) => {
   const tauntID = interaction.options.getNumber("tauntid");
-  // TODO: the "ephemeral" option is defined on the SlashCommandBuilder above but not yet threaded
-  // through to interaction.reply/deferReply. Wire it up when implementing ephemeral support.
+  const ephemeral = interaction.options.getBoolean("ephemeral") ?? false;
+  const flags = ephemeral ? MessageFlags.Ephemeral : undefined;
 
   const guild = interaction.client.guilds.cache.get(interaction.guildId ?? "");
   const member = guild?.members.cache.get(interaction.member?.user.id ?? "");
   const voiceChannel = member?.voice.channel;
   if (!voiceChannel) {
-    interaction.reply("You're not in a voice channel for me to join");
+    interaction.reply({ content: "You're not in a voice channel for me to join", flags });
     return;
   }
   const messageChannel = interaction.channel;
   if (!messageChannel) {
-    interaction.reply("Something isn't working...");
+    interaction.reply({ content: "Something isn't working...", flags });
     console.error("How did this interaction not have a message channel? ", interaction);
     return;
   }
 
   if (!tauntID) {
-    interaction.reply("No taunt specified");
+    interaction.reply({ content: "No taunt specified", flags });
     return;
   }
   if (tauntID > MAXIMUM_TAUNT_ID && tauntID <= MAXIMUM_TAUNT_ID_DEFINITIVE_EDITION) {
-    interaction.reply("I don't have any audio files from the Definitive Edition yet");
+    interaction.reply({
+      content: "I don't have any audio files from the Definitive Edition yet",
+      flags,
+    });
     return;
   }
   if (tauntID < MINIMUM_TAUNT_ID || tauntID > MAXIMUM_TAUNT_ID) {
-    interaction.reply(
-      `${tauntID} isn't a valid taunt - try a number between ${MINIMUM_TAUNT_ID}-${MAXIMUM_TAUNT_ID}`,
-    );
+    interaction.reply({
+      content: `${tauntID} isn't a valid taunt - try a number between ${MINIMUM_TAUNT_ID}-${MAXIMUM_TAUNT_ID}`,
+      flags,
+    });
     console.log(`Attempted to taunt with invalid argument ${tauntID}`);
     return;
   }
-  await interaction.deferReply();
+  await interaction.deferReply({ flags });
   try {
     await joinVoiceChannelAndPlayTaunt(voiceChannel, tauntID);
     await interaction.editReply(TauntIDToMessageMap[tauntID]);
