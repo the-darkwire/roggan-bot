@@ -40,4 +40,5 @@ jobs:
             git fetch --prune origin
             git reset --hard origin/main
             docker compose up -d --build
+            docker compose run --rm bot pnpm deploy-commands
             docker image prune -f
