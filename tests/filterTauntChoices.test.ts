@@ -3,13 +3,18 @@ import { filterTauntChoices } from "../src/commands/taunt";
 import { MAXIMUM_TAUNT_ID, MINIMUM_TAUNT_ID } from "../src/constants/taunts";
 
 describe("filterTauntChoices", () => {
-  it("returns all choices for an empty query, sorted by id", () => {
+  it("returns pinned iconic taunts first, then the rest in id order, for an empty query", () => {
     const all = filterTauntChoices("");
     expect(all).toHaveLength(MAXIMUM_TAUNT_ID - MINIMUM_TAUNT_ID + 1);
-    expect(all[0].id).toBe(MINIMUM_TAUNT_ID);
-    expect(all.at(-1)?.id).toBe(MAXIMUM_TAUNT_ID);
-    for (let i = 1; i < all.length; i++) {
-      expect(all[i].id).toBeGreaterThan(all[i - 1].id);
+
+    const expectedPinned = [30, 29, 11, 1, 2, 24, 42];
+    expect(all.slice(0, expectedPinned.length).map((c) => c.id)).toEqual(expectedPinned);
+
+    const restIds = all.slice(expectedPinned.length).map((c) => c.id);
+    const pinnedSet = new Set(expectedPinned);
+    expect(restIds.some((id) => pinnedSet.has(id))).toBe(false);
+    for (let i = 1; i < restIds.length; i++) {
+      expect(restIds[i]).toBeGreaterThan(restIds[i - 1]);
     }
   });
 

@@ -99,14 +99,28 @@ const joinVoiceChannelAndPlayTaunt = async (voiceChannel: VoiceBasedChannel, tau
 
 const AUTOCOMPLETE_MAX_CHOICES = 25;
 
-const tauntChoices = Object.entries(TauntIDToMessageMap)
+// Discord caps autocomplete responses at 25, so when the user hasn't typed anything we surface
+// these iconic taunts first to make sure they fit in the visible window.
+const PINNED_TAUNT_IDS = [30, 29, 11, 1, 2, 24, 42] as const;
+
+const tauntChoicesById = Object.entries(TauntIDToMessageMap)
   .map(([id, message]) => ({ id: Number(id), message }))
   .sort((a, b) => a.id - b.id);
 
+const pinnedTauntIdSet = new Set<number>(PINNED_TAUNT_IDS);
+const tauntChoicesPinnedFirst = [
+  ...PINNED_TAUNT_IDS.map((id) => {
+    const choice = tauntChoicesById.find((c) => c.id === id);
+    if (!choice) throw new Error(`Pinned taunt id ${id} not present in TauntIDToMessageMap`);
+    return choice;
+  }),
+  ...tauntChoicesById.filter((c) => !pinnedTauntIdSet.has(c.id)),
+];
+
 export const filterTauntChoices = (query: string) => {
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return tauntChoices;
-  return tauntChoices.filter(
+  if (!normalized) return tauntChoicesPinnedFirst;
+  return tauntChoicesById.filter(
     ({ id, message }) =>
       id.toString().startsWith(normalized) || message.toLowerCase().includes(normalized),
   );
