@@ -101,7 +101,7 @@ const AUTOCOMPLETE_MAX_CHOICES = 25;
 
 // Discord caps autocomplete responses at 25, so when the user hasn't typed anything we surface
 // these iconic taunts first to make sure they fit in the visible window.
-const PINNED_TAUNT_IDS = [30, 29, 11, 1, 2, 24, 42] as const;
+const PINNED_TAUNT_IDS = [30, 29, 11, 24, 26, 27, 42] as const;
 
 const tauntChoicesById = Object.entries(TauntIDToMessageMap)
   .map(([id, message]) => ({ id: Number(id), message }))

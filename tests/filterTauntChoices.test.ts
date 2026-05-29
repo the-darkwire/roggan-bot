@@ -7,7 +7,7 @@ describe("filterTauntChoices", () => {
     const all = filterTauntChoices("");
     expect(all).toHaveLength(MAXIMUM_TAUNT_ID - MINIMUM_TAUNT_ID + 1);
 
-    const expectedPinned = [30, 29, 11, 1, 2, 24, 42];
+    const expectedPinned = [30, 29, 11, 24, 26, 27, 42];
     expect(all.slice(0, expectedPinned.length).map((c) => c.id)).toEqual(expectedPinned);
 
     const restIds = all.slice(expectedPinned.length).map((c) => c.id);
