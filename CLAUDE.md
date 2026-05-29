@@ -13,7 +13,7 @@ A Discord bot that joins the invoking user's voice channel and plays an Age of E
 Package manager is **pnpm** (the-darkwire org standard). Runtime executor is **tsx** (no build step; `tsconfig.json` has `noEmit: true`).
 
 - `pnpm dev` / `pnpm start` — runs the bot via `tsx index.ts`. Identical commands; `start` is the production entry, `dev` exists for parity with other org repos.
-- `pnpm deploy-commands` — registers/refreshes the slash commands with Discord's REST API. Must be re-run any time the `SlashCommandBuilder` data in `src/commands/*` changes; restarting the bot is not enough.
+- `pnpm deploy-commands` — registers/refreshes the slash commands with Discord's REST API. The deploy workflow runs this automatically on push to `main`, so you only need to invoke it manually when iterating on `SlashCommandBuilder` data locally before merging.
 - `pnpm typecheck` — `tsc --noEmit`. The single most useful feedback loop when editing.
 - `pnpm lint` / `pnpm lint:fix` — Biome lint (read / autofix).
 - `pnpm format` — Biome format (write).
@@ -31,9 +31,11 @@ Entry point is `index.ts`: it constructs a `discord.js` `Client` with the `Guild
 1. Create `src/commands/<name>.ts` exporting both `data` (a `SlashCommandBuilder`) and `execute`.
 2. Add a `case` in `interaction-router.ts`.
 3. Import the new `data` in `src/deploy-commands.ts` and add it to the `commands` array.
-4. Run `npm run deploy-commands` so Discord knows about it.
+4. Discord picks up the new command on the next deploy (the workflow runs `pnpm deploy-commands` automatically). To test locally before merging, run `pnpm deploy-commands` yourself.
 
-`src/commands/taunt.ts` holds the voice-playback flow: validate the tauntID, look up the caller's `VoiceBasedChannel` via `guild.members.cache → member.voice.channel`, `deferReply()` (the voice handshake can exceed Discord's 3-second ack window), `joinVoiceChannel` from `@discordjs/voice`, await `VoiceConnectionStatus.Ready` (10s timeout), then play the mp3 with a single module-scoped `audioPlayer` (`StreamType.Raw`, `NoSubscriberBehavior.Stop`), and `editReply` with the result. On `AudioPlayerStatus.Idle` the player stops, unsubscribes, and disconnects. Because the `audioPlayer` is module-scoped (created once at import), concurrent invocations across guilds share the same player and will interfere with each other — keep this in mind before adding new audio commands. Any new command that does I/O over ~2s should follow the same `deferReply` + `editReply` pattern.
+`src/commands/taunt.ts` holds the voice-playback flow: validate the tauntID, look up the caller's `VoiceBasedChannel` via `guild.members.cache → member.voice.channel`, `deferReply()` (the voice handshake can exceed Discord's 3-second ack window), `joinVoiceChannel` from `@discordjs/voice`, await `VoiceConnectionStatus.Ready` (10s timeout), then play the mp3 with a per-invocation `AudioPlayer` (`StreamType.Raw`, `NoSubscriberBehavior.Stop`), and `editReply` with the result. Active sessions are tracked in a `Map<guildId, { player, connection }>` so a rapid second `/taunt` in the same guild tears down the previous session before starting a new one; cross-guild invocations are fully independent. On `AudioPlayerStatus.Idle` the handler tears down the session if it's still current (guards against a stale Idle firing after a newer session has replaced it). Any new command that does I/O over ~2s should follow the same `deferReply` + `editReply` pattern. Any new audio command sharing voice infrastructure should keep its own per-guild session map rather than reintroducing a module-scoped player.
+
+`/taunt` also supports autocomplete on `tauntid` (handled by the `autocomplete` export, dispatched in `interaction-router.ts` for `AutocompleteInteraction`s) and an `ephemeral` boolean option that is read once and threaded through every `reply`/`deferReply` call.
 
 Taunt IDs 43–105 are reserved for the Definitive Edition but no audio files exist for them yet; the command rejects those explicitly with a different message than out-of-range IDs. The ID→reply-text map and bounds live in `src/constants/taunts.ts`; `src/utils/getAudioFilePath.ts` maps an ID to `assets/NN.mp3` (zero-padded).
 
